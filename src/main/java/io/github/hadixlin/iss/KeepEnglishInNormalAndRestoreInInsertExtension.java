@@ -76,7 +76,7 @@ public class KeepEnglishInNormalAndRestoreInInsertExtension implements VimExtens
                 }
                 if (SWITCH_TO_ENGLISH_COMMAND_NAMES.contains(commandName)) {
                     lastInputSourceId = currentInputSource;
-                    if (!currentInputSource.equals(ENGLISH_INPUT_SOURCE)) {
+                    if (!isEnglishInputSource(currentInputSource)) {
                         switchToEnglish();
                     }
                 }
