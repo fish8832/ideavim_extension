@@ -20,17 +20,16 @@ import static io.github.hadixlin.iss.SystemInputSource.*;
  * Created by hadix on 31/03/2017.
  */
 public class KeepEnglishInNormalAndRestoreInInsertExtension implements VimExtension {
-
     private static final Set<String> SWITCH_TO_ENGLISH_COMMAND_NAMES
             = ImmutableSet.of("Vim Exit Insert Mode");
-    private static final Set<String> SWITCH_TO_LAST_INPUT_SOURCE_COMMAND_NAMES = ImmutableSet.of(
-            "Vim Insert After Cursor", "Vim Insert After Line End", "Vim Insert Before Cursor",
-            "Vim Insert Before First non-Blank", "Vim Insert Character Above Cursor",
-            "Vim Insert Character Below Cursor", 
-            "Vim Enter", "Vim Insert at Line Start", "Vim Insert New Line Above",
-            "Vim Insert New Line Below", "Vim Insert Previous Text", "Vim Insert Previous Text",
-            "Vim Insert Register" 
-    );
+    // private static final Set<String> SWITCH_TO_LAST_INPUT_SOURCE_COMMAND_NAMES = ImmutableSet.of(
+            // "Vim Insert After Cursor", "Vim Insert After Line End", "Vim Insert Before Cursor",
+            // "Vim Insert Before First non-Blank", "Vim Insert Character Above Cursor",
+            // "Vim Insert Character Below Cursor", 
+            // "Vim Enter", "Vim Insert at Line Start", "Vim Insert New Line Above",
+            // "Vim Insert New Line Below", "Vim Insert Previous Text", "Vim Insert Previous Text",
+            // "Vim Insert Register" 
+    // );
 
     private boolean restoreInInsert = true;
 
@@ -55,14 +54,15 @@ public class KeepEnglishInNormalAndRestoreInInsertExtension implements VimExtens
             this.exitInsertModeListener = exitInsertModeListener();
         }
         CommandProcessor.getInstance().addCommandListener(this.exitInsertModeListener);
-        VimExtensionFacade.putKeyMapping(
-                MappingMode.N, parseKeys("<Esc>"), parseKeys("a<Esc><Esc>"), false);
+        // VimExtensionFacade.putKeyMapping(
+                // MappingMode.N, parseKeys("<Esc>"), parseKeys("a<Esc><Esc>"), false);
     }
 
     @NotNull
     private CommandListener exitInsertModeListener() {
         return new CommandAdapter() {
             private String lastInputSourceId;
+            private boolean isInsertState = false;
 
             @Override
             public void beforeCommandFinished(CommandEvent commandEvent) {
@@ -70,23 +70,23 @@ public class KeepEnglishInNormalAndRestoreInInsertExtension implements VimExtens
                 if (StringUtils.isBlank(commandName)) {
                     return;
                 }
-                String currentInputSource = getCurrentInputSource();
-                if (currentInputSource == null) {
-                    return;
-                }
-                if (SWITCH_TO_ENGLISH_COMMAND_NAMES.contains(commandName)) {
-                    lastInputSourceId = currentInputSource;
-                    if (!isEnglishInputSource(currentInputSource)) {
-                        switchToEnglish();
+                if (isInsertState && SWITCH_TO_ENGLISH_COMMAND_NAMES.contains(commandName)) {
+                    isInsertState = false;
+                    String currentInputSource = getCurrentInputSource();
+                    if (currentInputSource != null) {
+                        lastInputSourceId = currentInputSource;
+                        if (!isEnglishInputSource(currentInputSource)) {
+                            switchToEnglish();
+                        }
                     }
-                }
-                if (!restoreInInsert) {
-                    return;
-                }
-                if (SWITCH_TO_LAST_INPUT_SOURCE_COMMAND_NAMES.contains(commandName)) {
-                    if (lastInputSourceId != null &&
-                            !currentInputSource.equals(lastInputSourceId)) {
-                        switchTo(lastInputSourceId);
+                } else if (!isInsertState 
+                        && (commandName.startsWith("Vim Insert") || commandName.startsWith("Vim Change") || commandName.equals("Typing"))) {
+                    isInsertState = true;
+                    if (restoreInInsert) {
+                        if (lastInputSourceId != null &&
+                                !lastInputSourceId.equals(getCurrentInputSource())) {
+                            switchTo(lastInputSourceId);
+                        }
                     }
                 }
             }
